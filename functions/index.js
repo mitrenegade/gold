@@ -8,14 +8,16 @@ let db = admin.firestore();
 // // https://firebase.google.com/docs/functions/write-firebase-functions
 
 exports.helloWorld = functions.https.onRequest((req, res) => {
-    var text = req.body.text
-    console.log("helloWorld with text " + text)
-    res.send("Hello from Firebase! " + text);
+    var user_name = req.body.user_name
+    var user_id = req.body.user_id
+    console.log("helloWorld with body " + JSON.stringify(req.body, null, " "))
+    res.send("Hello <@" + user_id + ">");
 });
 
 exports.giveGoldStar = functions.https.onRequest( (req, res) => {
     console.log("giveGoldStar with text: " + req.body.text)
     const toId = req.body.text
+    const fromId = req.body.user_id
     if (toId === undefined) {
         console.log("Invalid recipient id")
         return res.status(500).json({"message": "Invalid recipient id"})
@@ -37,7 +39,7 @@ exports.giveGoldStar = functions.https.onRequest( (req, res) => {
         if (stars !== 1) {
             starText = "stars"
         }
-        return res.send(`${toId} now has ${stars} ${starText}`)
+        return res.send(`<@${fromId}> awarded a gold start to ${toId}, who now has ${stars} ${starText}`)
     }).catch(err => {
         console.log("giveGoldStar failure ", err)
         return res.status(500).json(err)
