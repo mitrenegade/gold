@@ -1,5 +1,7 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const request = require('request')
+const rp = require('request-promise-native')
 
 admin.initializeApp(functions.config().firebase);
 let db = admin.firestore();
@@ -67,5 +69,33 @@ incrementStarCount = function(userId) {
         return starsRef.get()
     }).then(doc => {
         return doc.data()
+    })
+}
+
+// help with API calls - used for messaging
+postRequest = function(url, params) {
+    // console.log("Request to " + url + ": params " + JSON.stringify(params))
+    // request.post(url,
+    //     { 
+    //         form: params,
+    //     },
+    //     function (e, r, body) {
+    //         console.log("Response to " + url + ": body " + JSON.stringify(body))
+    //         let json = JSON.parse(body)
+    //     return json
+    // });
+
+    var options = {
+        method: 'POST',
+        uri: url,
+        body: params,
+        json: true // Automatically stringifies the body to JSON
+    };
+    return rp(options).then(results => {
+        console.log("PostRequest results: " + JSON.stringify(results))
+        return results
+    }).catch(err => {
+        console.log("PostRequest error: " + err.message)
+        return err
     })
 }
