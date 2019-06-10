@@ -33,7 +33,11 @@ exports.giveGoldStar = functions.https.onRequest( (req, res) => {
     return incrementStarCount(toId).then(result => {
         console.log("giveGoldStar success with result " + JSON.stringify(result))
         let stars = result.count
-        return res.send(`${toId} now has ${stars} stars`)
+        var starText = "star"
+        if (stars !== 1) {
+            starText = "stars"
+        }
+        return res.send(`${toId} now has ${stars} ${starText}`)
     }).catch(err => {
         console.log("giveGoldStar failure ", err)
         return res.status(500).json(err)
@@ -45,8 +49,16 @@ incrementStarCount = function(userId) {
     let starsRef = db.collection('stars').doc(userId)
     return db.runTransaction(t => {
         return t.get(starsRef).then(doc => {
-            let newCount = doc.data().count + 1;
-            return t.update(starsRef, {count: newCount})
+            console.log("Doc " + doc + " exists " + doc.exists)
+            var newCount = 0
+            if (!doc.exists) {
+                // does not exist yet
+                newCount = 1
+                return t.set(starsRef, {count: newCount})
+            } else {
+                newCount = doc.data().count + 1;
+                return t.update(starsRef, {count: newCount})
+            }
         })
     }).then(result => {
         console.log("IncrementStarCount Transaction success")
