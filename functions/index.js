@@ -1,13 +1,11 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const request = require('request')
 const rp = require('request-promise-native')
 
 admin.initializeApp(functions.config().firebase);
 let db = admin.firestore();
 
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
+const config = functions.config().dev
 
 exports.helloWorld = functions.https.onRequest((req, res) => {
     var user_name = req.body.user_name
@@ -18,30 +16,44 @@ exports.helloWorld = functions.https.onRequest((req, res) => {
 
 exports.giveGoldStar = functions.https.onRequest( (req, res) => {
     console.log("giveGoldStar with text: " + req.body.text)
-    const toId = req.body.text
-    const fromId = req.body.user_id
-    if (toId === undefined) {
+    const to_id = req.body.text
+    const from_id = req.body.user_id
+    const channel_id = req.body.channel_id
+    if (to_id === undefined) {
         console.log("Invalid recipient id")
         return res.status(500).json({"message": "Invalid recipient id"})
     }
 
     // working: sets to 1
-    // let ref = db.collection(`stars`).doc(toId)
+    // let ref = db.collection(`stars`).doc(to_id)
     // return ref.set({
     // 	count: 1
     // }).then(result => {
-    // 	console.log("updated stars for " + toId)
-    //     return res.send("updated stars for " + toId)
+    // 	console.log("updated stars for " + to_id)
+    //     return res.send("updated stars for " + to_id)
     // })
 
-    return incrementStarCount(toId).then(result => {
+    return incrementStarCount(to_id).then(result => {
         console.log("giveGoldStar success with result " + JSON.stringify(result))
         let stars = result.count
         var starText = "star"
         if (stars !== 1) {
             starText = "stars"
         }
-        return res.send(`<@${fromId}> awarded a gold start to ${toId}, who now has ${stars} ${starText}`)
+        let channelMessage = `<@${from_id}> awarded a gold start to ${to_id}, who now has ${stars} ${starText}`
+        let messageUrl = "https://slack.com/api/chat.postMessage"
+        let params = {
+            "headers": {
+                "Content-type": "application/json",
+                "Authorization": `Bearer ${config.slack.oauth_token}`
+            },
+            "channel": channel_id,
+            "text": channelMessage
+        }
+        return postRequest(messageUrl, params)
+    }).then(results => {
+        // message to sender: `You sent ${to_id} a gold star`
+        return res.send(`You sent ${to_id} a gold star`)
     }).catch(err => {
         console.log("giveGoldStar failure ", err)
         return res.status(500).json(err)
@@ -74,7 +86,7 @@ incrementStarCount = function(userId) {
 
 // help with API calls - used for messaging
 postRequest = function(url, params) {
-    // console.log("Request to " + url + ": params " + JSON.stringify(params))
+    console.log("Request to " + url + ": params " + JSON.stringify(params))
     // request.post(url,
     //     { 
     //         form: params,
