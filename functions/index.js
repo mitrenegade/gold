@@ -43,14 +43,16 @@ exports.giveGoldStar = functions.https.onRequest( (req, res) => {
         let channelMessage = `<@${from_id}> awarded a gold start to ${to_id}, who now has ${stars} ${starText}`
         let messageUrl = "https://slack.com/api/chat.postMessage"
         let params = {
-            "headers": {
-                "Content-type": "application/json",
-                "Authorization": `Bearer ${config.slack.oauth_token}`
-            },
             "channel": channel_id,
             "text": channelMessage
         }
-        return postRequest(messageUrl, params)
+        let headers = {
+            "Content-type": "application/json",
+            "Authorization": `Bearer ${config.slack.bot_token}`
+        }
+
+        console.log("Params " + JSON.stringify(params))
+        return postRequest(messageUrl, headers, params)
     }).then(results => {
         // message to sender: `You sent ${to_id} a gold star`
         return res.send(`You sent ${to_id} a gold star`)
@@ -85,8 +87,8 @@ incrementStarCount = function(userId) {
 }
 
 // help with API calls - used for messaging
-postRequest = function(url, params) {
-    console.log("Request to " + url + ": params " + JSON.stringify(params))
+postRequest = function(url, headers, body) {
+    console.log("Request to " + url + ": body " + JSON.stringify(body))
     // request.post(url,
     //     { 
     //         form: params,
@@ -100,7 +102,8 @@ postRequest = function(url, params) {
     var options = {
         method: 'POST',
         uri: url,
-        body: params,
+        headers: headers,
+        body: body,
         json: true // Automatically stringifies the body to JSON
     };
     return rp(options).then(results => {
