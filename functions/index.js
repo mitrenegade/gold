@@ -25,6 +25,7 @@ exports.helloWorld = functions.https.onRequest((req, res) => {
 exports.renderGold = functions.https.onRequest((req, res) => {
     const text = req.body.text
     const user_id = req.body.user_id
+    const userName = req.body.user_name
     const channel_id = req.body.channel_id
     const channel_name = req.body.channel_name
 
@@ -49,19 +50,23 @@ exports.renderGold = functions.https.onRequest((req, res) => {
             })
         }
     } else if (command === "awards") {
-        return myAwardCount(user_id).then(result => {
-            return res.send(result)
-        })
+      var awardType = ""
+      return getChannelTypeFromId(channel_id).then(result => {
+        let awardType = result
+        return myAwardCount(user_id, userName, awardType)})
+      .then(result => {
+          return res.send(result)
+      })
     } else if (command === "leader") {
         return leaderBoard().then(result => {
             return res.send(result)
         })
     } else if (command === "off") {
-        return updateEnableGold(user_id, false).then(result => {
+        return updateEnableGold(user_id, userName, false).then(result => {
             return res.send("You have opted out of Gold.")
         })
     } else if (command === "on") {
-        return updateEnableGold(user_id, true).then(result => {
+        return updateEnableGold(user_id, userName,  true).then(result => {
             return res.send("You have opted into Gold.")
         })
     } else if (command === "set") {
@@ -141,20 +146,21 @@ getChannelTypeFromId = function(channelId) {
     })
 }
 
-myAwardCount = function(userId) {
-    let ref = db.collection(`awards`).doc(userId)
+myAwardCount = function(userId, userName, awardType) {
+    let key = "<@"+ userId + "|" + userName + ">"
+    let ref = db.collection(`awards`).doc(key)
     return ref.get().then(doc => {
         if (!doc.exists) {
-            console.log("No matching documents for " + userId)
+            console.log("No matching documents for " + key)
             return "No awards for you!"
         }
         let data = doc.data()
-        console.log("userId " + userId + " data: " + JSON.stringify(data))
+        console.log("userId " + key + " data: " + JSON.stringify(data))
         var count = data.count
         if (count === undefined) {
             count = 0
         }
-        return `You have ${count} awards!`
+        return `Your ${awardType} total is ${count}!`
     })
 }
 
@@ -183,8 +189,9 @@ leaderBoard = function() {
     })
 }
 
-updateEnableGold = function(userId, enabled) {
-    let ref = db.collection(`awards`).doc(userId)
+updateEnableGold = function(userId, userName, enabled) {
+    let key = "<@"+ userId + "|" + userName + ">"
+    let ref = db.collection(`awards`).doc(key)
     return ref.set({active: enabled})
 }
 
