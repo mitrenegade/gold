@@ -62,11 +62,11 @@ exports.renderGold = functions.https.onRequest((req, res) => {
             return res.send(result)
         })
     } else if (command === "off") {
-        return updateEnableGold(user_id, false).then(result => {
+        return updateEnableGold(user_id, userName, false).then(result => {
             return res.send("You have opted out of Gold.")
         })
     } else if (command === "on") {
-        return updateEnableGold(user_id, true).then(result => {
+        return updateEnableGold(user_id, userName,  true).then(result => {
             return res.send("You have opted into Gold.")
         })
     } else if (command === "set") {
@@ -189,8 +189,9 @@ leaderBoard = function() {
     })
 }
 
-updateEnableGold = function(userId, enabled) {
-    let ref = db.collection(`awards`).doc(userId)
+updateEnableGold = function(userId, userName, enabled) {
+    let key = "<@"+ userId + "|" + userName + ">"
+    let ref = db.collection(`awards`).doc(key)
     return ref.set({active: enabled})
 }
 
