@@ -25,6 +25,7 @@ exports.helloWorld = functions.https.onRequest((req, res) => {
 exports.renderGold = functions.https.onRequest((req, res) => {
     const text = req.body.text
     const user_id = req.body.user_id
+    const userName = req.body.user_name
     const channel_id = req.body.channel_id
     const channel_name = req.body.channel_name
 
@@ -49,7 +50,7 @@ exports.renderGold = functions.https.onRequest((req, res) => {
             })
         }
     } else if (command === "awards") {
-        return myAwardCount(user_id).then(result => {
+        return myAwardCount(user_id, userName).then(result => {
             return res.send(result)
         })
     } else if (command === "leader") {
@@ -141,15 +142,16 @@ getChannelTypeFromId = function(channelId) {
     })
 }
 
-myAwardCount = function(userId) {
-    let ref = db.collection(`awards`).doc(userId)
+myAwardCount = function(userId, userName) {
+    let key = "<@"+ userId + "|" + userName + ">"
+    let ref = db.collection(`awards`).doc(key)
     return ref.get().then(doc => {
         if (!doc.exists) {
-            console.log("No matching documents for " + userId)
+            console.log("No matching documents for " + key)
             return "No awards for you!"
         }
         let data = doc.data()
-        console.log("userId " + userId + " data: " + JSON.stringify(data))
+        console.log("userId " + key + " data: " + JSON.stringify(data))
         var count = data.count
         if (count === undefined) {
             count = 0
