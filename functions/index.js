@@ -47,7 +47,7 @@ exports.renderGold = functions.https.onRequest((req, res) => {
                 return res.send(result)
             })
         }
-    } else if (command === "stars") {
+    } else if (command === "awards") {
         return myStarCount(user_id).then(result => {
             return res.send(result)
         })
@@ -70,18 +70,18 @@ exports.renderGold = functions.https.onRequest((req, res) => {
 })
 
 instructions = function() {
-    return "Gold usage: /gold action params\nAvailable actions:\n star: give someone a gold star\nstars: display your gold stars\nleader: display the leaderboard\noff: opt out of Gold\non: opt in to Gold"
+    return "Gold usage: /gold action params\nAvailable actions:\n star: give someone a gold star\nawards: display your gold awards\nleader: display the leaderboard\noff: opt out of Gold\non: opt in to Gold"
 }
 
 star = function(to_id, from_id, channel_id) {
     return incrementStarCount(to_id).then(result => {
         console.log("giveGoldStar success with result " + JSON.stringify(result))
-        let stars = result.count
+        let awards = result.count
         var starText = "star"
-        if (stars !== 1) {
-            starText = "stars"
+        if (awards !== 1) {
+            starText = "awards"
         }
-        let channelMessage = `<@${from_id}> awarded a gold star to ${to_id}, who now has ${stars} ${starText}`
+        let channelMessage = `<@${from_id}> awarded a gold star to ${to_id}, who now has ${awards} ${starText}`
         let messageUrl = "https://slack.com/api/chat.postMessage"
         let params = {
             "channel": channel_id,
@@ -99,9 +99,9 @@ star = function(to_id, from_id, channel_id) {
         return `You sent ${to_id} a gold star`
     }).catch(err => {
         if (err.message === "User has opted out") {
-            return `This person has opted out and cannot receive stars.`
+            return `This person has opted out and cannot receive awards.`
         } else if (err.message === "Channel not found") {
-            return `You sent ${to_id} a gold star but @gold is not in this channel. Please invite @gold to announce stars to the channel (optional).`
+            return `You sent ${to_id} a gold star but @gold is not in this channel. Please invite @gold to announce awards to the channel (optional).`
         } else {
             return err.message
         }
@@ -109,11 +109,11 @@ star = function(to_id, from_id, channel_id) {
 };
 
 myStarCount = function(userId) {
-    let ref = db.collection(`stars`).doc(userId)
+    let ref = db.collection(`awards`).doc(userId)
     return ref.get().then(doc => {
         if (!doc.exists) {
             console.log("No matching documents for " + userId)
-            return "No stars for you!"
+            return "No awards for you!"
         }
         let data = doc.data()
         console.log("userId " + userId + " data: " + JSON.stringify(data))
@@ -121,16 +121,16 @@ myStarCount = function(userId) {
         if (count === undefined) {
             count = 0
         }
-        return `You have ${count} stars!`
+        return `You have ${count} awards!`
     })
 }
 
 leaderBoard = function() {
-    let ref = db.collection(`stars`).orderBy('count', 'desc').limit(5)
+    let ref = db.collection(`awards`).orderBy('count', 'desc').limit(5)
     return ref.get().then(snapshot => {
         if (snapshot.empty) {
-            console.log("No matching documents for max stars")
-            return "No one has any stars :cry:"
+            console.log("No matching documents for max awards")
+            return "No one has any awards :cry:"
         }
         var rankingString = ""
         snapshot.forEach(doc => {
@@ -151,32 +151,32 @@ leaderBoard = function() {
 }
 
 updateEnableGold = function(userId, enabled) {
-    let ref = db.collection(`stars`).doc(userId)
+    let ref = db.collection(`awards`).doc(userId)
     return ref.set({active: enabled})
 }
 
 incrementStarCount = function(userId) {
-    let starsRef = db.collection('stars').doc(userId)
+    let awardsRef = db.collection('awards').doc(userId)
     return db.runTransaction(t => {
-        return t.get(starsRef).then(doc => {
+        return t.get(awardsRef).then(doc => {
             var newCount = 0
             if (!doc.exists) {
                 // does not exist yet
                 newCount = 1
-                return t.set(starsRef, {count: newCount, displayName: userId})
+                return t.set(awardsRef, {count: newCount, displayName: userId})
             } else {
                 if (doc.data().active === false) {
                     console.log(`User ${userId} has opted out, cannot increment`)
                     throw new Error("User has opted out")
                 } else {
                     newCount = doc.data().count + 1;
-                    return t.update(starsRef, {count: newCount, displayName: userId})
+                    return t.update(awardsRef, {count: newCount, displayName: userId})
                 }
             }
         })
     }).then(result => {
         console.log("IncrementStarCount Transaction success")
-        return starsRef.get()
+        return awardsRef.get()
     }).then(doc => {
         return doc.data()
     })
