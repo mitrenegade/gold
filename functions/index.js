@@ -24,31 +24,39 @@ exports.helloWorld = functions.https.onRequest((req, res) => {
  */
 exports.renderGold = functions.https.onRequest((req, res) => {
     const text = req.body.text
-    const from_id = req.body.user_id
+    const user_id = req.body.user_id
     const channel_id = req.body.channel_id
 
     var words = text.split(' ')
+    console.log("renderGold: text " + text + " split into words " + words)
     if (words.count === 0) {
         console.log("Empty command, show instructions")
         return res.send(instructions())
+    } else {
+        console.log(`Text: ${text} user_id: ${user_id} channel_id ${channel_id}`)
     }
-    const command = words[1]
+
+    const command = words[0]
+    console.log("command: " + command)
     if (command === "star") {
-        const to_id = words[2]
-        return star(to_id, to_name, from_id, channel_id).then(result => {
+        const to_id = words[1]
+        return star(to_id, user_id, channel_id).then(result => {
             return res.send(result)
         }).catch(err => {
-            console.log("giveGoldStar failure ", err)
+            console.log("star failure ", err)
             return res.status(500).json(err)
         })
     } else if (command === "stars") {
-
+        return res.send(myStarCount(user_id))
     } else if (command === "leader") {
-
+        return res.send(leaderBoard())
     } else if (command === "off") {
-        
+        return res.send("off")
     } else if (command === "on") {
-        
+        return (res.send("on"))
+    } else {
+        console.log("unknown command: " + command)
+        return res.send(instructions())
     }
 })
 
@@ -92,11 +100,29 @@ star = function(to_id, from_id, channel_id) {
         return postRequest(messageUrl, headers, params)
     }).then(results => {
         // message to sender: `You sent ${to_id} a gold star`
-        return res.send(`You sent ${to_id} a gold star`)
+        return `You sent ${to_id} a gold star`
     })
 };
 
-leader = function() {
+myStarCount = function(userId) {
+    // working: sets to 1
+    let ref = db.collection(`stars`).doc(userId)
+    return ref.get().then(doc => {
+        if (!doc.exists) {
+            console.log("No matching documents for " + userId)
+            return "No stars for you!"
+        }
+        let data = doc.data()
+        console.log("userId " + userId + " data: " + JSON.stringify(data))
+        var count = data.count
+        if (count === undefined) {
+            count = 0
+        }
+        return `You have ${count} stars!`
+    })
+}
+
+leaderBoard = function() {
     // working: sets to 1
     let ref = db.collection(`stars`).orderBy('count', 'desc').limit(5)
     return ref.get().then(snapshot => {
