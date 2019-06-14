@@ -63,6 +63,14 @@ exports.renderGold = functions.https.onRequest((req, res) => {
         return updateEnableGold(user_id, true).then(result => {
             return res.send("You have opted into Gold.")
         })
+    } else if (command === "set") {
+        // /gold set award donut
+        const awardCommand = words[1]
+        const awardType = words[2]
+        if (awardCommand !== "award" || awardType == undefined) {
+            return res.send("Usage: /gold set award <type>")
+        }
+        return setAwardType(channel_id, awardType)
     } else {
         console.log("unknown command: " + command)
         return res.send(instructions())
@@ -153,6 +161,11 @@ leaderBoard = function() {
 updateEnableGold = function(userId, enabled) {
     let ref = db.collection(`awards`).doc(userId)
     return ref.set({active: enabled})
+}
+
+setAwardType = function(channelId, awardType) {
+    let ref = db.collection(`channelInfo`).doc(channelId)
+    return ref.set({type: awardType})
 }
 
 incrementStarCount = function(userId) {
