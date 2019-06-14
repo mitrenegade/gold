@@ -50,9 +50,13 @@ exports.renderGold = functions.https.onRequest((req, res) => {
             })
         }
     } else if (command === "awards") {
-        return myAwardCount(user_id, userName).then(result => {
-            return res.send(result)
-        })
+      var awardType = ""
+      return getChannelTypeFromId(channel_id).then(result => {
+        let awardType = result
+        return myAwardCount(user_id, userName, awardType)})
+      .then(result => {
+          return res.send(result)
+      })
     } else if (command === "leader") {
         return leaderBoard().then(result => {
             return res.send(result)
@@ -142,7 +146,7 @@ getChannelTypeFromId = function(channelId) {
     })
 }
 
-myAwardCount = function(userId, userName) {
+myAwardCount = function(userId, userName, awardType) {
     let key = "<@"+ userId + "|" + userName + ">"
     let ref = db.collection(`awards`).doc(key)
     return ref.get().then(doc => {
@@ -156,7 +160,7 @@ myAwardCount = function(userId, userName) {
         if (count === undefined) {
             count = 0
         }
-        return `You have ${count} awards!`
+        return `Your ${awardType} total is ${count}!`
     })
 }
 
