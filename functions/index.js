@@ -36,19 +36,19 @@ exports.renderGold = functions.https.onRequest((req, res) => {
     }
 
     const command = words[0]
-    if (command === "star") {
+    if (command === "award") {
         const to_id = words[1]
         if (to_id === undefined) {
-            console.log("star: Invalid recipient id")
+            console.log("giveAward: Invalid recipient id")
             // because this function returns a promise, cannot just return a string
-            return res.send("Please tell me who to give the star to!")
+            return res.send("Please tell me who to award!")
         } else {
-            return star(to_id, user_id, channel_id).then(result => {
+            return giveAward(to_id, user_id, channel_id).then(result => {
                 return res.send(result)
             })
         }
     } else if (command === "awards") {
-        return myStarCount(user_id).then(result => {
+        return myAwardCount(user_id).then(result => {
             return res.send(result)
         })
     } else if (command === "leader") {
@@ -67,10 +67,12 @@ exports.renderGold = functions.https.onRequest((req, res) => {
         // /gold set award donut
         const awardCommand = words[1]
         const awardType = words[2]
-        if (awardCommand !== "award" || awardType == undefined) {
+        if (awardCommand !== "award" || awardType === undefined) {
             return res.send("Usage: /gold set award <type>")
         }
-        return setAwardType(channel_id, awardType)
+        return setAwardType(channel_id, awardType).then(result => {
+            return res.send("Award type for channel " + channel_id + " changed to " + awardType)
+        })
     } else {
         console.log("unknown command: " + command)
         return res.send(instructions())
@@ -78,10 +80,10 @@ exports.renderGold = functions.https.onRequest((req, res) => {
 })
 
 instructions = function() {
-    return "Gold usage: /gold action params\nAvailable actions:\n star: give someone a gold star\nawards: display your gold awards\nleader: display the leaderboard\noff: opt out of Gold\non: opt in to Gold"
+    return "Gold usage: /gold action params\nAvailable actions:\n award: give someone a gold star\nawards: display your awards\nleader: display the leaderboard\noff: opt out of Gold\non: opt in to Gold\nset: change channel settings"
 }
 
-star = function(to_id, from_id, channel_id) {
+giveAward = function(to_id, from_id, channel_id) {
     return incrementStarCount(to_id).then(result => {
         console.log("giveGoldStar success with result " + JSON.stringify(result))
         let awards = result.count
@@ -116,7 +118,7 @@ star = function(to_id, from_id, channel_id) {
     })
 };
 
-myStarCount = function(userId) {
+myAwardCount = function(userId) {
     let ref = db.collection(`awards`).doc(userId)
     return ref.get().then(doc => {
         if (!doc.exists) {
