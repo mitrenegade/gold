@@ -28,7 +28,7 @@ exports.renderGold = functions.https.onRequest((req, res) => {
     const channel_id = req.body.channel_id
 
     var words = text.split(' ')
-    // console.log("renderGold: body " + JSON.stringify(req.body, null, ' '))
+    console.log("renderGold: body " + JSON.stringify(req.body, null, ' '))
     if (words.count === 0) {
         return res.send(instructions())
     } else {
