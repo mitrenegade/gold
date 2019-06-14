@@ -5,7 +5,7 @@ const rp = require('request-promise-native')
 admin.initializeApp(functions.config().firebase);
 let db = admin.firestore();
 
-const config = functions.config().prod
+const config = functions.config().slack
 
 exports.helloWorld = functions.https.onRequest((req, res) => {
     var user_name = req.body.user_name
@@ -109,7 +109,7 @@ giveAward = function(to_id, from_id, channel_id) {
       }
       let headers = {
           "Content-type": "application/json",
-          "Authorization": `Bearer ${config.slack.bot_token}`
+          "Authorization": `Bearer ${config.bot_token}`
       }
           // console.log("Params " + JSON.stringify(params))
           return postRequest(messageUrl, headers, params)
