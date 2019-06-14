@@ -22,7 +22,7 @@ exports.helloWorld = functions.https.onRequest((req, res) => {
  * user_name
  * text: all text after the command ("action params")
  */
-exports.renderGold = functions.https.onRequest((req, res) => {
+ exports.renderGold = functions.https.onRequest((req, res) => {
     const text = req.body.text
     const user_id = req.body.user_id
     const userName = req.body.user_name
@@ -35,13 +35,13 @@ exports.renderGold = functions.https.onRequest((req, res) => {
         return res.send(instructions())
     } else {
        // console.log(`Text: ${text} user_id: ${user_id} channel_id ${channel_id}`)
-    }
+   }
 
-    const command = words[0]
-    if (command === "award") {
-        const to_id = words[1]
-        if (to_id === undefined) {
-            console.log("giveAward: Invalid recipient id")
+   const command = words[0]
+   if (command === "award") {
+    const to_id = words[1]
+    if (to_id === undefined) {
+        console.log("giveAward: Invalid recipient id")
             // because this function returns a promise, cannot just return a string
             return res.send("Please tell me who to award!")
         } else {
@@ -57,19 +57,19 @@ exports.renderGold = functions.https.onRequest((req, res) => {
       .then(result => {
           return res.send(result)
       })
-    } else if (command === "leader") {
-        return leaderBoard().then(result => {
-            return res.send(result)
-        })
-    } else if (command === "off") {
-        return updateEnableGold(user_id, userName, false).then(result => {
-            return res.send("You have opted out of Gold.")
-        })
-    } else if (command === "on") {
-        return updateEnableGold(user_id, userName,  true).then(result => {
-            return res.send("You have opted into Gold.")
-        })
-    } else if (command === "set") {
+  } else if (command === "leader") {
+    return leaderBoard().then(result => {
+        return res.send(result)
+    })
+} else if (command === "off") {
+    return updateEnableGold(user_id, userName, false).then(result => {
+        return res.send("You have opted out of Gold.")
+    })
+} else if (command === "on") {
+    return updateEnableGold(user_id, userName,  true).then(result => {
+        return res.send("You have opted into Gold.")
+    })
+} else if (command === "set") {
         // /gold set award donut
         const awardCommand = words[1]
         const awardType = words[2]
@@ -89,7 +89,7 @@ exports.renderGold = functions.https.onRequest((req, res) => {
     }
 })
 
-instructions = function() {
+ instructions = function() {
     return "Gold usage: /gold action params\nAvailable actions:\n award: give someone a gold star\nawards: display your awards\nleader: display the leaderboard\noff: opt out of Gold\non: opt in to Gold\nset: change channel settings"
 }
 
@@ -99,21 +99,21 @@ giveAward = function(to_id, from_id, channel_id) {
         awardType = result
         return incrementStarCount(to_id)
     }).then(result => {
-          console.log("giveGoldAward success with result " + JSON.stringify(result))
-          let awards = result.count
-          let channelMessage = `<@${from_id}> awarded a ${awardType} to ${to_id}, whose ${awardType} total is ${awards}`
-          let messageUrl = "https://slack.com/api/chat.postMessage"
-          let params = {
-              "channel": channel_id,
-              "text": channelMessage
-          }
-          let headers = {
-              "Content-type": "application/json",
-              "Authorization": `Bearer ${config.slack.bot_token}`
-          }
+      console.log("giveGoldAward success with result " + JSON.stringify(result))
+      let awards = result.count
+      let channelMessage = `<@${from_id}> awarded a ${awardType} to ${to_id}, whose ${awardType} total is ${awards}`
+      let messageUrl = "https://slack.com/api/chat.postMessage"
+      let params = {
+          "channel": channel_id,
+          "text": channelMessage
+      }
+      let headers = {
+          "Content-type": "application/json",
+          "Authorization": `Bearer ${config.slack.bot_token}`
+      }
           // console.log("Params " + JSON.stringify(params))
           return postRequest(messageUrl, headers, params)
-  }).then(results => {
+      }).then(results => {
       // message to sender: `You sent ${to_id} a gold star`
       return `You sent ${to_id} a ${awardType}`
   }).catch(err => {
@@ -143,7 +143,7 @@ getChannelTypeFromId = function(channelId) {
       }
       console.log("Channel:"+ channelId + " does not have an associated award type")
       return defaultType
-    })
+  })
 }
 
 myAwardCount = function(userId, userName, awardType) {
