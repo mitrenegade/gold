@@ -97,6 +97,12 @@ star = function(to_id, from_id, channel_id) {
     }).then(results => {
         // message to sender: `You sent ${to_id} a gold star`
         return `You sent ${to_id} a gold star`
+    }).catch(err => {
+        if (err.message === "User has opted out") {
+            return `This person has opted out and cannot receive stars.`
+        } else {
+            return err.message
+        }
     })
 };
 
@@ -122,12 +128,12 @@ leaderBoard = function() {
     return ref.get().then(snapshot => {
         if (snapshot.empty) {
             console.log("No matching documents for max stars")
-            return "No star leaders!"
+            return "No one has any stars :cry:"
         }
         var rankingString = ""
         snapshot.forEach(doc => {
             let data = doc.data()
-            console.log("goldLeader data: " + JSON.stringify(data))
+            // console.log("goldLeader data: " + JSON.stringify(data))
             var name = data.displayName
             if (name !== undefined) {
                 var count = data.count
@@ -151,15 +157,19 @@ incrementStarCount = function(userId) {
     let starsRef = db.collection('stars').doc(userId)
     return db.runTransaction(t => {
         return t.get(starsRef).then(doc => {
-            console.log("Doc " + doc + " exists " + doc.exists)
             var newCount = 0
             if (!doc.exists) {
                 // does not exist yet
                 newCount = 1
                 return t.set(starsRef, {count: newCount, displayName: userId})
             } else {
-                newCount = doc.data().count + 1;
-                return t.update(starsRef, {count: newCount, displayName: userId})
+                if (doc.data().active === false) {
+                    console.log(`User ${userId} has opted out, cannot increment`)
+                    throw new Error("User has opted out")
+                } else {
+                    newCount = doc.data().count + 1;
+                    return t.update(starsRef, {count: newCount, displayName: userId})
+                }
             }
         })
     }).then(result => {
@@ -172,17 +182,7 @@ incrementStarCount = function(userId) {
 
 // help with API calls - used for messaging
 postRequest = function(url, headers, body) {
-    console.log("Request to " + url + ": body " + JSON.stringify(body))
-    // request.post(url,
-    //     { 
-    //         form: params,
-    //     },
-    //     function (e, r, body) {
-    //         console.log("Response to " + url + ": body " + JSON.stringify(body))
-    //         let json = JSON.parse(body)
-    //     return json
-    // });
-
+    // console.log("Request to " + url + ": body " + JSON.stringify(body))
     var options = {
         method: 'POST',
         uri: url,
@@ -191,7 +191,7 @@ postRequest = function(url, headers, body) {
         json: true // Automatically stringifies the body to JSON
     };
     return rp(options).then(results => {
-        console.log("PostRequest results: " + JSON.stringify(results))
+        // console.log("PostRequest results: " + JSON.stringify(results))
         return results
     }).catch(err => {
         console.log("PostRequest error: " + err.message)
