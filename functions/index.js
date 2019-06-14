@@ -28,12 +28,11 @@ exports.renderGold = functions.https.onRequest((req, res) => {
     const channel_id = req.body.channel_id
 
     var words = text.split(' ')
-//    console.log("renderGold: text " + text + " split into words " + words)
+    // console.log("renderGold: body " + JSON.stringify(req.body, null, ' '))
     if (words.count === 0) {
-//        console.log("Empty command, show instructions")
         return res.send(instructions())
     } else {
-//        console.log(`Text: ${text} user_id: ${user_id} channel_id ${channel_id}`)
+       // console.log(`Text: ${text} user_id: ${user_id} channel_id ${channel_id}`)
     }
 
     const command = words[0]
@@ -57,9 +56,13 @@ exports.renderGold = functions.https.onRequest((req, res) => {
             return res.send(result)
         })
     } else if (command === "off") {
-        return res.send("off")
+        return updateEnableGold(user_id, false).then(result => {
+            return res.send("You have opted out of Gold.")
+        })
     } else if (command === "on") {
-        return res.send("on")
+        return updateEnableGold(user_id, true).then(result => {
+            return res.send("You have opted into Gold.")
+        })
     } else {
         console.log("unknown command: " + command)
         return res.send(instructions())
@@ -98,7 +101,6 @@ star = function(to_id, from_id, channel_id) {
 };
 
 myStarCount = function(userId) {
-    // working: sets to 1
     let ref = db.collection(`stars`).doc(userId)
     return ref.get().then(doc => {
         if (!doc.exists) {
@@ -116,7 +118,6 @@ myStarCount = function(userId) {
 }
 
 leaderBoard = function() {
-    // working: sets to 1
     let ref = db.collection(`stars`).orderBy('count', 'desc').limit(5)
     return ref.get().then(snapshot => {
         if (snapshot.empty) {
@@ -139,6 +140,11 @@ leaderBoard = function() {
         })
         return rankingString
     })
+}
+
+updateEnableGold = function(userId, enabled) {
+    let ref = db.collection(`stars`).doc(userId)
+    return ref.set({active: enabled})
 }
 
 incrementStarCount = function(userId) {
