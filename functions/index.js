@@ -74,39 +74,61 @@ instructions = function() {
 }
 
 star = function(to_id, from_id, channel_id) {
-    return incrementStarCount(to_id).then(result => {
-        console.log("giveGoldStar success with result " + JSON.stringify(result))
-        let awards = result.count
-        var starText = "star"
-        if (awards !== 1) {
-            starText = "awards"
-        }
-        let channelMessage = `<@${from_id}> awarded a gold star to ${to_id}, who now has ${awards} ${starText}`
-        let messageUrl = "https://slack.com/api/chat.postMessage"
-        let params = {
-            "channel": channel_id,
-            "text": channelMessage
-        }
-        let headers = {
-            "Content-type": "application/json",
-            "Authorization": `Bearer ${config.slack.bot_token}`
-        }
-
-        // console.log("Params " + JSON.stringify(params))
-        return postRequest(messageUrl, headers, params)
-    }).then(results => {
-        // message to sender: `You sent ${to_id} a gold star`
-        return `You sent ${to_id} a gold star`
-    }).catch(err => {
-        if (err.message === "User has opted out") {
-            return `This person has opted out and cannot receive awards.`
-        } else if (err.message === "Channel not found") {
-            return `You sent ${to_id} a gold star but @gold is not in this channel. Please invite @gold to announce awards to the channel (optional).`
-        } else {
-            return err.message
-        }
+    return getChannelFromId(channel_id).then(result => {
+      let awardType = result
+      incrementStarCount(to_id).then(result => {
+          console.log("giveGoldAward success with result " + JSON.stringify(result))
+          let awards = result.count
+          var starText = "star"
+          if (awards !== 1) {
+              starText = "awards"
+          }
+          let channelMessage = `<@${from_id}> awarded a ${awardType} to ${to_id}, who now has ${awards} ${starText}`
+          let messageUrl = "https://slack.com/api/chat.postMessage"
+          let params = {
+              "channel": channel_id,
+              "text": channelMessage
+          }
+          let headers = {
+              "Content-type": "application/json",
+              "Authorization": `Bearer ${config.slack.bot_token}`
+          }
+          // console.log("Params " + JSON.stringify(params))
+          return postRequest(messageUrl, headers, params)
+      }).then(results => {
+          // message to sender: `You sent ${to_id} a gold star`
+          return `You sent ${to_id} an award`
+      }).catch(err => {
+          if (err.message === "User has opted out") {
+              return `This person has opted out and cannot receive awards.`
+          } else if (err.message === "Channel not found") {
+              return `You sent ${to_id} a gold star but @gold is not in this channel. Please invite @gold to announce awards to the channel (optional).`
+          } else if (err.message === "No Award Type Available") {
+              return `You sent ${to_id} a gold star but this channel does not have an associated award type.`
+          }
+          else {
+              return err.message
+          }
+      })
     })
 };
+
+getChannelFromId = function(channelId) {
+    let ref = db.collection(`channelType`).doc(channelId)
+    return ref.get().then(doc => {
+      if (!doc.exists) {
+          console.log("No matching documents for " + channelId)
+          return "No channel found!"
+      }
+      let data = doc.data()
+      var name = data.displayName
+      if (name !== undefined) {
+          return name
+      }
+      console.log("Channel:"+ channelId + " does not have an associated award type")
+      return "No Award Type Available"
+    })
+}
 
 myStarCount = function(userId) {
     let ref = db.collection(`awards`).doc(userId)
