@@ -92,7 +92,7 @@ star = function(to_id, from_id, channel_id) {
             "Authorization": `Bearer ${config.slack.bot_token}`
         }
 
-        console.log("Params " + JSON.stringify(params))
+        // console.log("Params " + JSON.stringify(params))
         return postRequest(messageUrl, headers, params)
     }).then(results => {
         // message to sender: `You sent ${to_id} a gold star`
@@ -100,6 +100,8 @@ star = function(to_id, from_id, channel_id) {
     }).catch(err => {
         if (err.message === "User has opted out") {
             return `This person has opted out and cannot receive stars.`
+        } else if (err.message === "Channel not found") {
+            return `You sent ${to_id} a gold star but @gold is not in this channel. Please invite @gold to announce stars to the channel (optional).`
         } else {
             return err.message
         }
@@ -191,10 +193,10 @@ postRequest = function(url, headers, body) {
         json: true // Automatically stringifies the body to JSON
     };
     return rp(options).then(results => {
-        // console.log("PostRequest results: " + JSON.stringify(results))
+        console.log("PostRequest results: " + JSON.stringify(results))
+        if (results.ok === false && results.error === "channel_not_found") {
+            throw new Error("Channel not found")
+        }
         return results
-    }).catch(err => {
-        console.log("PostRequest error: " + err.message)
-        return err
     })
 }
