@@ -14,17 +14,49 @@ exports.helloWorld = functions.https.onRequest((req, res) => {
     res.send("Hello <@" + user_id + ">");
 });
 
-exports.giveGoldStar = functions.https.onRequest( (req, res) => {
-    console.log("giveGoldStar with body: " + JSON.stringify(req.body, null, " "))
-    const to_id = req.body.text
-    const to_name = req.body.text
+/* root command usage: /gold action params
+ * params available from body:
+ * channel_id
+ * channel_name
+ * user_id: sender
+ * user_name
+ * text: all text after the command ("action params")
+ */
+exports.renderGold = functions.https.onRequest((req, res) => {
+    const text = req.body.text
     const from_id = req.body.user_id
     const channel_id = req.body.channel_id
-    if (to_id === undefined) {
-        console.log("Invalid recipient id")
-        return res.status(500).json({"message": "Invalid recipient id"})
-    }
 
+    var words = text.split(' ')
+    if (words.count === 0) {
+        console.log("Empty command, show instructions")
+        return res.send(instructions())
+    }
+    const command = words[1]
+    if (command === "star") {
+        const to_id = words[2]
+        return star(to_id, to_name, from_id, channel_id).then(result => {
+            return res.send(result)
+        }).catch(err => {
+            console.log("giveGoldStar failure ", err)
+            return res.status(500).json(err)
+        })
+    } else if (command === "stars") {
+
+    } else if (command === "leader") {
+
+    } else if (command === "off") {
+        
+    } else if (command === "on") {
+        
+    }
+})
+
+instructions = function() {
+    return "Gold usage: /gold action params\nAvailable actions:\n star: give someone a gold star\nstars: display your gold stars\nleader: display the leaderboard\noff: opt out of Gold\non: opt in to Gold"
+}
+
+star = function(to_id, from_id, channel_id) {
     // working: sets to 1
     // let ref = db.collection(`stars`).doc(to_id)
     // return ref.set({
@@ -33,8 +65,12 @@ exports.giveGoldStar = functions.https.onRequest( (req, res) => {
     // 	console.log("updated stars for " + to_id)
     //     return res.send("updated stars for " + to_id)
     // })
+    if (to_id === undefined) {
+        console.log("Invalid recipient id")
+        throw new Error({"message": "Invalid recipient id"})
+    }
 
-    return incrementStarCount(to_id, to_name).then(result => {
+    return incrementStarCount(to_id).then(result => {
         console.log("giveGoldStar success with result " + JSON.stringify(result))
         let stars = result.count
         var starText = "star"
@@ -57,14 +93,36 @@ exports.giveGoldStar = functions.https.onRequest( (req, res) => {
     }).then(results => {
         // message to sender: `You sent ${to_id} a gold star`
         return res.send(`You sent ${to_id} a gold star`)
-    }).catch(err => {
-        console.log("giveGoldStar failure ", err)
-        return res.status(500).json(err)
     })
-});
+};
 
+leader = function() {
+    // working: sets to 1
+    let ref = db.collection(`stars`).orderBy('count', 'desc').limit(5)
+    return ref.get().then(snapshot => {
+        if (snapshot.empty) {
+            console.log("No matching documents for max stars")
+            return "No star leaders!"
+        }
+        var rankingString = ""
+        snapshot.forEach(doc => {
+            let data = doc.data()
+            console.log("goldLeader data: " + JSON.stringify(data))
+            var name = data.displayName
+            if (name !== undefined) {
+                var count = data.count
+                if (count === undefined) {
+                    count = 0
+                }
 
-incrementStarCount = function(userId, username) {
+                rankingString = rankingString + name + ": " + `${count}` + `\n`
+            }
+        })
+        return rankingString
+    })
+}
+
+incrementStarCount = function(userId) {
     let starsRef = db.collection('stars').doc(userId)
     return db.runTransaction(t => {
         return t.get(starsRef).then(doc => {
@@ -73,10 +131,10 @@ incrementStarCount = function(userId, username) {
             if (!doc.exists) {
                 // does not exist yet
                 newCount = 1
-                return t.set(starsRef, {count: newCount, displayName: username})
+                return t.set(starsRef, {count: newCount, displayName: userId})
             } else {
                 newCount = doc.data().count + 1;
-                return t.update(starsRef, {count: newCount, displayName: username})
+                return t.update(starsRef, {count: newCount, displayName: userId})
             }
         })
     }).then(result => {
@@ -115,35 +173,3 @@ postRequest = function(url, headers, body) {
         return err
     })
 }
-
-exports.goldLeader = functions.https.onRequest( (req, res) => {
-        // working: sets to 1
-    let ref = db.collection(`stars`).orderBy('count', 'desc').limit(5)
-    return ref.get().then(snapshot => {
-        if (snapshot.empty) {
-            console.log("No matching documents for max stars")
-            return "No star leaders!"
-        }
-        var rankingString = ""
-        snapshot.forEach(doc => {
-            let data = doc.data()
-            console.log("goldLeader data: " + JSON.stringify(data))
-            var name = data.displayName
-            if (name !== undefined) {
-                var count = data.count
-                if (count === undefined) {
-                    count = 0
-                }
-
-                rankingString = rankingString + name + ": " + `${count}` + `\n`
-            }
-        })
-        return rankingString
-    }).then(result => {
-        console.log("GoldLeader results: " + result)
-        return res.send(result)
-    }).catch(err => {
-        console.log("GoldLeader error: " + err.message)
-        return res.status(500).json(err)
-    })
-})
