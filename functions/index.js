@@ -5,7 +5,7 @@ const rp = require('request-promise-native')
 admin.initializeApp(functions.config().firebase);
 let db = admin.firestore();
 
-const config = functions.config().dev
+const config = functions.config().prod
 
 exports.helloWorld = functions.https.onRequest((req, res) => {
     var user_name = req.body.user_name
@@ -26,6 +26,7 @@ exports.renderGold = functions.https.onRequest((req, res) => {
     const text = req.body.text
     const user_id = req.body.user_id
     const channel_id = req.body.channel_id
+    const channel_name = req.body.channel_name
 
     var words = text.split(' ')
     console.log("renderGold: body " + JSON.stringify(req.body, null, ' '))
@@ -71,7 +72,11 @@ exports.renderGold = functions.https.onRequest((req, res) => {
             return res.send("Usage: /gold set award <type>")
         }
         return setAwardType(channel_id, awardType).then(result => {
-            return res.send("Award type for channel " + channel_id + " changed to " + awardType)
+            var channelStr = channel_name
+            if (channel_name === "privategroup") {
+                channelStr = "this channel"
+            }
+            return res.send("Award type for " + channelStr + " changed to " + awardType)
         })
     } else {
         console.log("unknown command: " + command)
@@ -120,7 +125,7 @@ giveAward = function(to_id, from_id, channel_id) {
 
 getChannelTypeFromId = function(channelId) {
     let defaultType = "star"
-    let ref = db.collection(`channelType`).doc(channelId)
+    let ref = db.collection(`channelInfo`).doc(channelId)
     return ref.get().then(doc => {
       if (!doc.exists) {
           console.log("No matching documents for " + channelId)
