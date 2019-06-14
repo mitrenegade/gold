@@ -28,32 +28,38 @@ exports.renderGold = functions.https.onRequest((req, res) => {
     const channel_id = req.body.channel_id
 
     var words = text.split(' ')
-    console.log("renderGold: text " + text + " split into words " + words)
+//    console.log("renderGold: text " + text + " split into words " + words)
     if (words.count === 0) {
-        console.log("Empty command, show instructions")
+//        console.log("Empty command, show instructions")
         return res.send(instructions())
     } else {
-        console.log(`Text: ${text} user_id: ${user_id} channel_id ${channel_id}`)
+//        console.log(`Text: ${text} user_id: ${user_id} channel_id ${channel_id}`)
     }
 
     const command = words[0]
-    console.log("command: " + command)
     if (command === "star") {
         const to_id = words[1]
-        return star(to_id, user_id, channel_id).then(result => {
-            return res.send(result)
-        }).catch(err => {
-            console.log("star failure ", err)
-            return res.status(500).json(err)
-        })
+        if (to_id === undefined) {
+            console.log("star: Invalid recipient id")
+            // because this function returns a promise, cannot just return a string
+            return res.send("Please tell me who to give the star to!")
+        } else {
+            return star(to_id, user_id, channel_id).then(result => {
+                return res.send(result)
+            })
+        }
     } else if (command === "stars") {
-        return res.send(myStarCount(user_id))
+        return myStarCount(user_id).then(result => {
+            return res.send(result)
+        })
     } else if (command === "leader") {
-        return res.send(leaderBoard())
+        return leaderBoard().then(result => {
+            return res.send(result)
+        })
     } else if (command === "off") {
         return res.send("off")
     } else if (command === "on") {
-        return (res.send("on"))
+        return res.send("on")
     } else {
         console.log("unknown command: " + command)
         return res.send(instructions())
@@ -65,19 +71,6 @@ instructions = function() {
 }
 
 star = function(to_id, from_id, channel_id) {
-    // working: sets to 1
-    // let ref = db.collection(`stars`).doc(to_id)
-    // return ref.set({
-    // 	count: 1
-    // }).then(result => {
-    // 	console.log("updated stars for " + to_id)
-    //     return res.send("updated stars for " + to_id)
-    // })
-    if (to_id === undefined) {
-        console.log("Invalid recipient id")
-        throw new Error({"message": "Invalid recipient id"})
-    }
-
     return incrementStarCount(to_id).then(result => {
         console.log("giveGoldStar success with result " + JSON.stringify(result))
         let stars = result.count
@@ -85,7 +78,7 @@ star = function(to_id, from_id, channel_id) {
         if (stars !== 1) {
             starText = "stars"
         }
-        let channelMessage = `<@${from_id}> awarded a gold start to ${to_id}, who now has ${stars} ${starText}`
+        let channelMessage = `<@${from_id}> awarded a gold star to ${to_id}, who now has ${stars} ${starText}`
         let messageUrl = "https://slack.com/api/chat.postMessage"
         let params = {
             "channel": channel_id,
